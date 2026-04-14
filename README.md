@@ -9,9 +9,10 @@ my cat.
 It does not ship prebuilt ISOs. The intended workflow is:
 
 1. clone this repo inside an Arch Linux `x86_64` build environment
-2. optionally stage a local `customrepo/` with `yay-bin`
-3. run `./build.sh`
-4. collect the ISO from `out/`
+2. let `build.sh` fetch and verify the latest official Arch Linux ISO into a local cache
+3. optionally stage a local `customrepo/` with `yay-bin`
+4. run `./build.sh`
+5. collect the ISO from `out/`
 
 ## Requirements
 
@@ -78,11 +79,13 @@ When `customrepo/x86_64` is present and contains `yay-bin`, the build:
 
 `build.sh` automates the full local workflow:
 
-1. copies `/usr/share/archiso/configs/releng` into `work/orionlinux`
-2. optionally stages `customrepo/`
-3. applies the Orionlinux branding patch via `prepare-orionlinux-profile.sh`
-4. runs `mkarchiso`
-5. writes the final ISO to `out/`
+1. resolves the latest official Arch Linux release from `https://archlinux.org/download/`
+2. downloads and verifies the matching official Arch ISO into `cache/archlinux/`
+3. copies `/usr/share/archiso/configs/releng` into `work/orionlinux`
+4. optionally stages `customrepo/`
+5. applies the Orionlinux branding patch via `prepare-orionlinux-profile.sh`
+6. runs `mkarchiso`
+7. writes the final ISO to `out/`
 
 The script accepts these environment overrides when needed:
 
@@ -90,8 +93,11 @@ The script accepts these environment overrides when needed:
   `/usr/share/archiso/configs/releng`
 - `WORKDIR`: alternate temporary build directory
 - `OUTDIR`: alternate output directory
+- `ARCHISO_CACHE_DIR`: alternate cache directory for the official Arch ISO
 - `MKARCHISO_BIN`: alternate `mkarchiso` binary path
 - `SUDO_BIN`: alternate privilege escalation command
+- `CURL_BIN`: alternate `curl` binary path
+- `SHA256_BIN`: alternate `sha256sum` binary path
 
 ## What Gets Branded
 
@@ -115,8 +121,8 @@ The script accepts these environment overrides when needed:
 
 ## Notes
 
-- This repository is source-only. `*.iso`, `work/`, `out/`, and `customrepo/`
-  are ignored.
+- This repository is source-only. `*.iso`, `cache/`, `work/`, `out/`, and
+  `customrepo/` are ignored.
 - Branding of the installed target is wired into `archinstall` and
   `orioninstall`. Manual `pacstrap` installs will not automatically pick up the
   Orionlinux post-install branding.

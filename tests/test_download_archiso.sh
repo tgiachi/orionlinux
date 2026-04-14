@@ -22,10 +22,12 @@ trap 'rm -rf "$TMPDIR"' EXIT
 
 RELENG_SOURCE="$TMPDIR/releng-source"
 BIN_DIR="$TMPDIR/bin"
+WORKDIR="$TMPDIR/work/orionlinux"
+OUTDIR="$TMPDIR/out"
+CACHE_DIR="$TMPDIR/cache/archlinux"
 DOWNLOAD_PAGE="$TMPDIR/download.html"
 CHECKSUMS_FILE="$TMPDIR/sha256sums.txt"
 FAKE_ISO_SOURCE="$TMPDIR/archlinux-2026.04.01-x86_64.iso"
-CACHE_DIR="$TMPDIR/cache/archlinux"
 mkdir -p "$RELENG_SOURCE/airootfs/etc" \
          "$RELENG_SOURCE/boot/grub" \
          "$BIN_DIR"
@@ -67,9 +69,6 @@ cat > "$CHECKSUMS_FILE" <<EOF
 $FAKE_SHA  archlinux-2026.04.01-x86_64.iso
 EOF
 
-mkdir -p "$CACHE_DIR"
-cp "$FAKE_ISO_SOURCE" "$CACHE_DIR/archlinux-2026.04.01-x86_64.iso"
-
 cat > "$BIN_DIR/curl" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -104,8 +103,7 @@ case "$url" in
     cat "$TEST_SHA256SUMS"
     ;;
   https://geo.mirror.pkgbuild.com/iso/2026.04.01/archlinux-2026.04.01-x86_64.iso)
-    printf 'unexpected iso download\n' >&2
-    exit 1
+    cp "$TEST_FAKE_ISO_SOURCE" "$output"
     ;;
   *)
     printf 'unexpected url: %s\n' "$url" >&2
@@ -136,26 +134,25 @@ EOF
 
 chmod 0755 "$BIN_DIR/curl" "$BIN_DIR/mkarchiso" "$BIN_DIR/sudo" "$BIN_DIR/sha256sum"
 
-mkdir -p "$REPO_ROOT/customrepo/x86_64"
-trap 'rm -rf "$TMPDIR"; rm -rf "$REPO_ROOT/customrepo" "$REPO_ROOT/work" "$REPO_ROOT/out"' EXIT
-touch "$REPO_ROOT/customrepo/x86_64/yay-bin-12.5.7-1-x86_64.pkg.tar.zst"
-touch "$REPO_ROOT/customrepo/x86_64/orionlocal.db.tar.gz"
-
-TEST_LOG="$TMPDIR/mkarchiso.log"
-TEST_OUT="$REPO_ROOT/out"
 TEST_DOWNLOAD_PAGE="$DOWNLOAD_PAGE"
 TEST_SHA256SUMS="$CHECKSUMS_FILE"
-export TEST_LOG TEST_OUT TEST_DOWNLOAD_PAGE TEST_SHA256SUMS
+TEST_FAKE_ISO_SOURCE="$FAKE_ISO_SOURCE"
+TEST_LOG="$TMPDIR/mkarchiso.log"
+TEST_OUT="$OUTDIR"
+export TEST_DOWNLOAD_PAGE TEST_SHA256SUMS TEST_FAKE_ISO_SOURCE TEST_LOG TEST_OUT
 
-PATH="$BIN_DIR:$PATH" RELENG_SOURCE="$RELENG_SOURCE" ARCHISO_CACHE_DIR="$CACHE_DIR" MKARCHISO_BIN="$BIN_DIR/mkarchiso" SUDO_BIN="$BIN_DIR/sudo" CURL_BIN="$BIN_DIR/curl" SHA256_BIN="$BIN_DIR/sha256sum" \
+PATH="$BIN_DIR:$PATH" \
+  RELENG_SOURCE="$RELENG_SOURCE" \
+  WORKDIR="$WORKDIR" \
+  OUTDIR="$OUTDIR" \
+  ARCHISO_CACHE_DIR="$CACHE_DIR" \
+  MKARCHISO_BIN="$BIN_DIR/mkarchiso" \
+  SUDO_BIN="$BIN_DIR/sudo" \
+  CURL_BIN="$BIN_DIR/curl" \
+  SHA256_BIN="$BIN_DIR/sha256sum" \
   bash "$TARGET_SCRIPT"
 
-[[ -d "$REPO_ROOT/work/orionlinux" ]] || fail "workdir missing"
-[[ -f "$REPO_ROOT/out/fake.iso" ]] || fail "fake iso output missing"
-[[ -f "$REPO_ROOT/work/orionlinux/customrepo/x86_64/yay-bin-12.5.7-1-x86_64.pkg.tar.zst" ]] || fail "customrepo not staged"
+[[ -f "$CACHE_DIR/archlinux-2026.04.01-x86_64.iso" ]] || fail "arch iso not downloaded"
+assert_file_contains "$TEST_LOG" "-v -o $OUTDIR $WORKDIR"
 
-assert_file_contains "$TEST_LOG" "-v -o $REPO_ROOT/out $REPO_ROOT/work/orionlinux"
-assert_file_contains "$REPO_ROOT/work/orionlinux/profiledef.sh" "iso_name='orionlinux'"
-assert_file_contains "$REPO_ROOT/work/orionlinux/airootfs/etc/hostname" "orionlinux"
-
-printf 'PASS: build.sh smoke test\n'
+printf 'PASS: download official Arch ISO before build\n'
