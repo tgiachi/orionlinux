@@ -3,6 +3,7 @@
 *.qcow2
 cache/
 customrepo/
+docs/superpowers/
 logs/
 out/
 work/
