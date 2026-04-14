@@ -1,0 +1,10 @@
+NAME="Orionlinux"
+PRETTY_NAME="Orionlinux"
+ID=orionlinux
+ID_LIKE=arch
+ANSI_COLOR="38;2;23;147;209"
+HOME_URL="https://arch.anaconda.net-freaks.com/"
+DOCUMENTATION_URL="https://wiki.archlinux.org/"
+SUPPORT_URL="https://archlinux.org/"
+BUG_REPORT_URL="https://arch.anaconda.net-freaks.com/"
+LOGO=orionlinux
